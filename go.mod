@@ -1,4 +1,4 @@
-module github.com/blueshift-labs/go-js
+module github.com/sagarrohankr-bsft/go-js
 
 go 1.16
 

@@ -25,6 +25,10 @@ func v8goScript(isolates ...*v8go.Isolate) string {
 		isolate = isolates[0]
 	}
 	ctx := v8go.NewContext(isolate)
+	if isolate == nil {
+		// When we pass isolate as nil, then NewContext function create the new one internally that need to be explicitly disposed of
+		defer ctx.Isolate().Dispose()
+	}
 	defer ctx.Close()
 	output, err := ctx.RunScript(script, "function.js")
 	if err != nil {
@@ -38,13 +42,10 @@ func v8goScript(isolates ...*v8go.Isolate) string {
 }
 
 func TestV8GoTransformScript(t *testing.T) {
-	userJsonString := v8goScript()
-
-	fmt.Println(userJsonString)
+	v8goScript()
 }
 
 func BenchmarkNoReuseV8GoVm(b *testing.B) {
-	v8go.SetFlags("--max_old_space_size=8192")
 	for i := 0; i < b.N; i++ {
 		_ = v8goScript()
 	}
@@ -52,6 +53,7 @@ func BenchmarkNoReuseV8GoVm(b *testing.B) {
 
 func BenchmarkReuseV8GoVm(b *testing.B) {
 	vm := v8go.NewIsolate()
+	defer vm.Dispose()
 	for i := 0; i < b.N; i++ {
 		_ = v8goScript(vm)
 	}
@@ -70,6 +72,7 @@ func BenchmarkParallelReuseV8GoVm(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(p *testing.PB) {
 		vm := v8go.NewIsolate()
+		defer vm.Dispose()
 		for p.Next() {
 			_ = v8goScript(vm)
 		}
